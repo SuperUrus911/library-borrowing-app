@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "13062977683",
+    "project_id": "pustaka-library-9626",
+    "storage_bucket": "pustaka-library-9626.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:13062977683:android:3e031ddcb85e3156743566",
+        "android_client_info": {
+          "package_name": "dev.ijlal.stacks"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBFsc0gokW4ZXEV6uz1DglObkG_vDgYLyw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

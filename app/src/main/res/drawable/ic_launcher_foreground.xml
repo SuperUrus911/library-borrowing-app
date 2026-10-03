@@ -1,0 +1,33 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- A stack of three books; the top one sits slightly askew. -->
+    <path
+        android:fillColor="#F6EFE3"
+        android:pathData="M31,61h46a2,2 0,0 1,2 2v6a2,2 0,0 1,-2 2h-46a2,2 0,0 1,-2 -2v-6a2,2 0,0 1,2 -2z" />
+    <path
+        android:fillColor="#1E2A3A"
+        android:fillAlpha="0.35"
+        android:pathData="M36,61h2.5v10h-2.5zM69.5,61h2.5v10h-2.5z" />
+    <path
+        android:fillColor="#E0A458"
+        android:pathData="M36,50h38a2,2 0,0 1,2 2v6a2,2 0,0 1,-2 2h-38a2,2 0,0 1,-2 -2v-6a2,2 0,0 1,2 -2z" />
+    <path
+        android:fillColor="#1E2A3A"
+        android:fillAlpha="0.3"
+        android:pathData="M41,50h2.5v10h-2.5zM66.5,50h2.5v10h-2.5z" />
+    <group
+        android:pivotX="52"
+        android:pivotY="44"
+        android:rotation="-7">
+        <path
+            android:fillColor="#F6EFE3"
+            android:pathData="M33,39h38a2,2 0,0 1,2 2v6a2,2 0,0 1,-2 2h-38a2,2 0,0 1,-2 -2v-6a2,2 0,0 1,2 -2z" />
+        <path
+            android:fillColor="#1E2A3A"
+            android:fillAlpha="0.35"
+            android:pathData="M38,39h2.5v10h-2.5zM63.5,39h2.5v10h-2.5z" />
+    </group>
+</vector>

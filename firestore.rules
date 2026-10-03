@@ -1,0 +1,79 @@
+rules_version = '2';
+
+// Stacks security rules.
+// Members can only read their own profile and loans, and can only change stock
+// by exactly one copy as part of a borrow/return transaction. Librarians (role
+// "admin") manage the catalog and every loan.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return signedIn()
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    function changedOnly(fields) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(fields);
+    }
+
+    function bookPath(bookId) {
+      return /databases/$(database)/documents/books/$(bookId);
+    }
+
+    match /users/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+
+      // Self-registration always creates a member with no loans.
+      allow create: if signedIn()
+        && request.auth.uid == uid
+        && request.resource.data.role == 'member'
+        && request.resource.data.activeBookIds.size() == 0;
+
+      // Members may only touch their loan list (borrow/return); admins may edit anything.
+      allow update: if isAdmin()
+        || (request.auth.uid == uid
+            && changedOnly(['activeBookIds'])
+            && request.resource.data.activeBookIds.size() <= 3);
+
+      allow delete: if false;
+    }
+
+    match /books/{bookId} {
+      allow read: if signedIn();
+      allow create, delete: if isAdmin();
+
+      // A member's borrow or return moves stock by one copy and touches nothing else.
+      allow update: if isAdmin()
+        || (signedIn()
+            && changedOnly(['availableCopies'])
+            && math.abs(request.resource.data.availableCopies - resource.data.availableCopies) <= 1
+            && request.resource.data.availableCopies >= 0
+            && request.resource.data.availableCopies <= resource.data.totalCopies);
+    }
+
+    match /loans/{loanId} {
+      allow read: if signedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+
+      // A new loan must be the caller's own and must take a copy off the shelf in the same transaction.
+      allow create: if signedIn()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.status == 'BORROWED'
+        && getAfter(bookPath(request.resource.data.bookId)).data.availableCopies
+             == get(bookPath(request.resource.data.bookId)).data.availableCopies - 1;
+
+      // Members can only close their own loan.
+      allow update: if isAdmin()
+        || (signedIn()
+            && resource.data.userId == request.auth.uid
+            && resource.data.status == 'BORROWED'
+            && request.resource.data.status == 'RETURNED'
+            && changedOnly(['status', 'returnedAt']));
+
+      allow delete: if false;
+    }
+  }
+}
