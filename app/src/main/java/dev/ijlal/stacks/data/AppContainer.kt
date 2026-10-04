@@ -3,7 +3,7 @@ package dev.ijlal.stacks.data
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 
-/** Manual dependency container; the app is small enough not to need a DI framework. */
+// Simple manual DI. The app is too small to bother with Hilt.
 object AppContainer {
     private val firestore by lazy { FirebaseFirestore.getInstance() }
 

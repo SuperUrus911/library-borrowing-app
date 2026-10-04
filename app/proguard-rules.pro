@@ -1,3 +1,3 @@
-# Firestore maps documents onto these classes via reflection.
+# Firestore uses reflection to map documents to these classes
 -keepattributes Signature,*Annotation*
 -keep class dev.ijlal.stacks.data.model.** { *; }

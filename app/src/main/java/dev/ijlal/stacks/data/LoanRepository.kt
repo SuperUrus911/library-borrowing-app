@@ -19,7 +19,7 @@ class LoanRepository(private val db: FirebaseFirestore) {
     private val books = db.collection("books")
     private val users = db.collection("users")
 
-    /** Sorted on the client so the query needs no composite index. */
+    // sorted here instead of orderBy so we don't need a composite index
     fun observeLoansForUser(userId: String): Flow<List<Loan>> =
         loans.whereEqualTo("userId", userId).observe()
             .map { snapshot -> snapshot.toObjects(Loan::class.java).sortedByDescending { it.borrowedAt } }
@@ -34,10 +34,7 @@ class LoanRepository(private val db: FirebaseFirestore) {
             .observe()
             .map { snapshot -> snapshot.toObjects(Loan::class.java).sortedBy { it.dueAt } }
 
-    /**
-     * Takes one copy off the shelf and records the loan atomically, so two members
-     * can never borrow the last copy at the same time.
-     */
+    // all in one transaction so two people can't grab the last copy at the same time
     suspend fun borrow(bookId: String, member: UserProfile): Timestamp {
         val bookRef = books.document(bookId)
         val userRef = users.document(member.uid)
@@ -84,7 +81,7 @@ class LoanRepository(private val db: FirebaseFirestore) {
         return dueAt
     }
 
-    /** Closes the loan and puts the copy back on the shelf. Used by members and librarians. */
+    // used by both members and librarians
     suspend fun returnLoan(loanId: String) {
         val loanRef = loans.document(loanId)
         db.runTransaction { tx ->

@@ -12,7 +12,6 @@ object LibraryPolicy {
     const val LATE_FEE_PER_DAY = 2_000L // Rupiah
 }
 
-/** Where a loan stands relative to its due date. */
 sealed interface DueState {
     data class OnTime(val daysLeft: Long) : DueState
     data class Overdue(val daysLate: Long, val fee: Long) : DueState

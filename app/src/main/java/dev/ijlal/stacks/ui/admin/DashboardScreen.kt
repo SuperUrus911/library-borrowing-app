@@ -1,49 +1,43 @@
 package dev.ijlal.stacks.ui.admin
 
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.KeyboardReturn
-import androidx.compose.material.icons.outlined.ArrowOutward
-import androidx.compose.material.icons.outlined.AutoStories
-import androidx.compose.material.icons.outlined.CheckCircle
-import androidx.compose.material.icons.outlined.ErrorOutline
-import androidx.compose.material.icons.outlined.Inventory2
-import androidx.compose.material.icons.outlined.SwapHoriz
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
@@ -58,13 +52,20 @@ import dev.ijlal.stacks.data.isOverdue
 import dev.ijlal.stacks.data.model.Loan
 import dev.ijlal.stacks.data.model.UserProfile
 import dev.ijlal.stacks.data.userMessage
-import dev.ijlal.stacks.ui.components.DueStatePill
+import dev.ijlal.stacks.ui.components.DueTag
 import dev.ijlal.stacks.ui.components.ErrorState
+import dev.ijlal.stacks.ui.components.Eyebrow
 import dev.ijlal.stacks.ui.components.LoadingBox
-import dev.ijlal.stacks.ui.components.SectionHeader
+import dev.ijlal.stacks.ui.components.PageTitle
+import dev.ijlal.stacks.ui.components.TopMark
 import dev.ijlal.stacks.ui.components.formatRupiah
+import dev.ijlal.stacks.ui.components.greeting
+import dev.ijlal.stacks.ui.components.isEvening
+import dev.ijlal.stacks.ui.components.panel
 import dev.ijlal.stacks.ui.components.relativeTime
-import java.time.LocalTime
+import dev.ijlal.stacks.ui.theme.Midnight
+import dev.ijlal.stacks.ui.theme.StacksFonts
+import dev.ijlal.stacks.ui.theme.StacksType
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
@@ -123,9 +124,8 @@ fun DashboardScreen(
     vm: DashboardViewModel = viewModel(),
 ) {
     val state by vm.state.collectAsStateWithLifecycle()
-    val colors = MaterialTheme.colorScheme
 
-    Scaffold(contentWindowInsets = WindowInsets(0)) { padding ->
+    Scaffold(containerColor = Color.Transparent, contentWindowInsets = WindowInsets(0)) { padding ->
         when {
             state.loading -> LoadingBox(Modifier.padding(padding))
             state.error != null -> ErrorState(state.error!!, Modifier.padding(padding))
@@ -133,91 +133,44 @@ fun DashboardScreen(
                 Modifier
                     .fillMaxSize()
                     .padding(padding),
-                contentPadding = PaddingValues(bottom = 24.dp),
+                contentPadding = PaddingValues(bottom = 32.dp),
             ) {
+                item { TopMark(user.name) }
                 item {
-                    Column(Modifier.statusBarsPadding().padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 16.dp)) {
-                        Text(
-                            "${greeting()}, ${user.firstName}",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = colors.onSurfaceVariant,
-                        )
-                        Text("Library overview", style = MaterialTheme.typography.headlineMedium)
-                    }
-                }
-                item {
-                    Column(
-                        Modifier.padding(horizontal = 20.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            StatCard(
-                                icon = Icons.Outlined.AutoStories,
-                                value = "${state.titles}",
-                                label = "Titles · ${state.copies} copies",
-                                container = colors.primaryContainer,
-                                content = colors.onPrimaryContainer,
-                                modifier = Modifier.weight(1f),
-                            )
-                            StatCard(
-                                icon = Icons.Outlined.Inventory2,
-                                value = "${state.onShelf}",
-                                label = "Copies on the shelf",
-                                container = colors.tertiaryContainer,
-                                content = colors.onTertiaryContainer,
-                                modifier = Modifier.weight(1f),
-                            )
-                        }
-                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            StatCard(
-                                icon = Icons.Outlined.SwapHoriz,
-                                value = "${state.activeLoans}",
-                                label = "On loan · ${state.members} borrowers",
-                                container = colors.secondaryContainer,
-                                content = colors.onSecondaryContainer,
-                                modifier = Modifier.weight(1f),
-                            )
-                            StatCard(
-                                icon = Icons.Outlined.ErrorOutline,
-                                value = "${state.overdue.size}",
-                                label = if (state.overdue.isEmpty()) "Overdue" else "Overdue · ${formatRupiah(state.outstandingFees)}",
-                                container = if (state.overdue.isEmpty()) colors.surfaceContainerHigh else colors.errorContainer,
-                                content = if (state.overdue.isEmpty()) colors.onSurface else colors.onErrorContainer,
-                                modifier = Modifier.weight(1f),
-                            )
-                        }
-                    }
+                    Spacer(Modifier.height(28.dp))
+                    PageTitle("${greeting()}, ${user.firstName}", if (isEvening()) "Tonight at the library" else "Today at the library")
+                    Spacer(Modifier.height(24.dp))
+                    Ledger(state, Modifier.padding(horizontal = 24.dp))
                 }
 
                 item {
-                    Spacer(Modifier.height(16.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(end = 8.dp)) {
-                        SectionHeader("Needs attention", Modifier.weight(1f))
-                        TextButton(onClick = onOpenLoans) { Text("All loans") }
-                    }
-                }
-                if (state.overdue.isEmpty()) {
-                    item {
-                        Row(
-                            Modifier.padding(horizontal = 20.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Icon(Icons.Outlined.CheckCircle, contentDescription = null, tint = colors.tertiary)
-                            Text(
-                                "  No overdue books. Everything is on schedule.",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = colors.onSurfaceVariant,
-                            )
+                    Row(
+                        Modifier.padding(start = 24.dp, end = 12.dp, top = 30.dp, bottom = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Eyebrow("Needs attention")
+                        Spacer(Modifier.weight(1f))
+                        TextButton(onClick = onOpenLoans) {
+                            Text("ALL LOANS →", style = MaterialTheme.typography.labelMedium, color = Midnight.Ice)
                         }
                     }
-                } else {
-                    item {
-                        Card(
-                            colors = CardDefaults.cardColors(containerColor = colors.surfaceContainerLow),
-                            modifier = Modifier.padding(horizontal = 20.dp),
+                }
+                item {
+                    if (state.overdue.isEmpty()) {
+                        Text(
+                            "Nothing overdue. Every book is on schedule.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Midnight.CreamMuted,
+                            modifier = Modifier.padding(horizontal = 24.dp),
+                        )
+                    } else {
+                        Column(
+                            Modifier
+                                .padding(horizontal = 24.dp)
+                                .panel(),
                         ) {
                             state.overdue.forEachIndexed { index, loan ->
-                                if (index > 0) HorizontalDivider(color = colors.outlineVariant)
+                                if (index > 0) HorizontalDivider(color = Midnight.Hairline)
                                 OverdueRow(loan)
                             }
                         }
@@ -225,52 +178,64 @@ fun DashboardScreen(
                 }
 
                 item {
-                    Spacer(Modifier.height(16.dp))
-                    SectionHeader("Recent activity")
+                    Eyebrow("Recent activity", modifier = Modifier.padding(start = 24.dp, top = 34.dp, bottom = 16.dp))
                 }
                 if (state.recent.isEmpty()) {
                     item {
                         Text(
-                            "No borrowing activity yet.",
+                            "No borrowing yet.",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = colors.onSurfaceVariant,
-                            modifier = Modifier.padding(horizontal = 20.dp),
+                            color = Midnight.CreamMuted,
+                            modifier = Modifier.padding(horizontal = 24.dp),
                         )
                     }
                 }
-                items(state.recent, key = { "${it.loan.id}-${it.returned}" }) { activity ->
-                    ActivityRow(activity)
+                itemsIndexed(state.recent, key = { _, it -> "${it.loan.id}-${it.returned}" }) { index, activity ->
+                    ActivityRow(activity, last = index == state.recent.lastIndex)
                 }
             }
         }
     }
 }
 
-private fun greeting(): String = when (LocalTime.now().hour) {
-    in 5..11 -> "Good morning"
-    in 12..16 -> "Good afternoon"
-    else -> "Good evening"
+// 2x2 stats grid. The overdue cell turns cream when something is late.
+@Composable
+private fun Ledger(state: DashboardUiState, modifier: Modifier = Modifier) {
+    Column(modifier.panel()) {
+        Row(Modifier.height(IntrinsicSize.Min)) {
+            LedgerCell("Titles", "${state.titles}", "${state.copies} copies", Modifier.weight(1f))
+            VerticalDivider(color = Midnight.Hairline)
+            LedgerCell("On the shelf", "${state.onShelf}", "ready to borrow", Modifier.weight(1f))
+        }
+        HorizontalDivider(color = Midnight.Hairline)
+        Row(Modifier.height(IntrinsicSize.Min)) {
+            LedgerCell("On loan", "${state.activeLoans}", "${state.members} borrowers", Modifier.weight(1f))
+            VerticalDivider(color = Midnight.Hairline)
+            LedgerCell(
+                "Overdue",
+                "${state.overdue.size}",
+                if (state.overdue.isEmpty()) "all on time" else formatRupiah(state.outstandingFees) + " due",
+                Modifier.weight(1f),
+                inverted = state.overdue.isNotEmpty(),
+            )
+        }
+    }
 }
 
 @Composable
-private fun StatCard(
-    icon: ImageVector,
-    value: String,
-    label: String,
-    container: Color,
-    content: Color,
-    modifier: Modifier = Modifier,
-) {
-    Card(
-        colors = CardDefaults.cardColors(containerColor = container, contentColor = content),
-        modifier = modifier,
+private fun LedgerCell(label: String, value: String, note: String, modifier: Modifier = Modifier, inverted: Boolean = false) {
+    val ink = if (inverted) Midnight.Void else Midnight.Cream
+    Column(
+        modifier
+            .fillMaxHeight()
+            .background(if (inverted) Midnight.Cream else Color.Transparent)
+            .padding(18.dp),
     ) {
-        Column(Modifier.padding(16.dp)) {
-            Icon(icon, contentDescription = null, modifier = Modifier.size(22.dp))
-            Spacer(Modifier.height(12.dp))
-            Text(value, style = MaterialTheme.typography.headlineMedium)
-            Text(label, style = MaterialTheme.typography.labelMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        }
+        Eyebrow(label, color = if (inverted) Midnight.Void else Midnight.CreamFaint)
+        Spacer(Modifier.height(12.dp))
+        Text(value, style = StacksType.Numeral, color = ink)
+        Spacer(Modifier.height(4.dp))
+        Text(note.uppercase(), style = StacksType.Stamp, color = if (inverted) Midnight.Void else Midnight.CreamMuted)
     }
 }
 
@@ -279,58 +244,65 @@ private fun OverdueRow(loan: Loan) {
     Row(
         Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(horizontal = 18.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {
-            Text(loan.bookTitle, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(
-                loan.userName,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            Text(loan.bookTitle, style = MaterialTheme.typography.titleLarge, color = Midnight.Cream, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            Text(loan.userName, style = MaterialTheme.typography.bodySmall, color = Midnight.CreamMuted)
+            Spacer(Modifier.height(10.dp))
+            DueTag(loan)
         }
-        DueStatePill(loan)
     }
 }
 
 @Composable
-private fun ActivityRow(activity: Activity) {
-    val colors = MaterialTheme.colorScheme
+private fun ActivityRow(activity: Activity, last: Boolean) {
     Row(
         Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
+            .height(IntrinsicSize.Min)
+            .padding(horizontal = 24.dp),
     ) {
-        Surface(
-            shape = CircleShape,
-            color = if (activity.returned) colors.tertiaryContainer else colors.secondaryContainer,
-            contentColor = if (activity.returned) colors.onTertiaryContainer else colors.onSecondaryContainer,
-        ) {
-            Icon(
-                if (activity.returned) Icons.AutoMirrored.Outlined.KeyboardReturn else Icons.Outlined.ArrowOutward,
-                contentDescription = null,
-                modifier = Modifier.padding(8.dp).size(18.dp),
+        // timeline dot: blue = borrowed, cream = returned
+        Column(Modifier.width(18.dp).fillMaxHeight(), horizontalAlignment = Alignment.CenterHorizontally) {
+            Spacer(Modifier.height(6.dp))
+            Box(
+                Modifier
+                    .size(9.dp)
+                    .clip(CircleShape)
+                    .background(if (activity.returned) Midnight.Cream else Midnight.Ice),
             )
+            if (!last) {
+                Box(
+                    Modifier
+                        .padding(top = 6.dp)
+                        .width(1.dp)
+                        .weight(1f)
+                        .background(Midnight.Hairline),
+                )
+            }
         }
-        Text(
-            buildAnnotatedString {
-                withStyle(SpanStyle(fontWeight = FontWeight.SemiBold)) { append(activity.loan.userName) }
-                append(if (activity.returned) " returned " else " borrowed ")
-                withStyle(SpanStyle(fontWeight = FontWeight.SemiBold)) { append(activity.loan.bookTitle) }
-            },
-            style = MaterialTheme.typography.bodyMedium,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier
+        Column(
+            Modifier
                 .weight(1f)
-                .padding(horizontal = 12.dp),
-        )
-        Text(
-            activity.at.relativeTime(),
-            style = MaterialTheme.typography.labelMedium,
-            color = colors.outline,
-        )
+                .padding(start = 14.dp, bottom = 22.dp),
+        ) {
+            Text(
+                buildAnnotatedString {
+                    withStyle(SpanStyle(fontWeight = FontWeight.Medium, color = Midnight.Cream)) { append(activity.loan.userName) }
+                    append(if (activity.returned) " returned " else " borrowed ")
+                    withStyle(
+                        SpanStyle(fontFamily = StacksFonts.Serif, fontStyle = FontStyle.Italic, fontSize = 17.sp, color = Midnight.Cream),
+                    ) { append(activity.loan.bookTitle) }
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                color = Midnight.CreamMuted,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Spacer(Modifier.height(4.dp))
+            Eyebrow(activity.at.relativeTime(), color = Midnight.CreamFaint)
+        }
     }
 }

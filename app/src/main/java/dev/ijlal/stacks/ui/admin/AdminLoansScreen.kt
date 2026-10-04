@@ -1,25 +1,20 @@
 package dev.ijlal.stacks.ui.admin
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Inbox
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -27,6 +22,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
@@ -39,13 +35,17 @@ import dev.ijlal.stacks.data.LoanRepository
 import dev.ijlal.stacks.data.dueState
 import dev.ijlal.stacks.data.isOverdue
 import dev.ijlal.stacks.data.model.Loan
+import dev.ijlal.stacks.data.model.UserProfile
 import dev.ijlal.stacks.data.userMessage
 import dev.ijlal.stacks.ui.components.ConfirmDialog
 import dev.ijlal.stacks.ui.components.EmptyState
 import dev.ijlal.stacks.ui.components.ErrorState
+import dev.ijlal.stacks.ui.components.FilterTag
 import dev.ijlal.stacks.ui.components.LoadingBox
 import dev.ijlal.stacks.ui.components.LoanCard
-import dev.ijlal.stacks.ui.components.SearchField
+import dev.ijlal.stacks.ui.components.PageTitle
+import dev.ijlal.stacks.ui.components.SearchBox
+import dev.ijlal.stacks.ui.components.TopMark
 import dev.ijlal.stacks.ui.components.formatRupiah
 import dev.ijlal.stacks.ui.components.pluralize
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -96,7 +96,7 @@ class AdminLoansViewModel(
                 AdminLoansUiState(
                     loading = false,
                     loans = searched.filter(f.matches).let { list ->
-                        // Active views put the most urgent loan first.
+                        // most urgent first
                         if (f == LoanFilter.Active || f == LoanFilter.Overdue) list.sortedBy { it.dueAt } else list
                     },
                     counts = LoanFilter.entries.associateWith { filter -> searched.count(filter.matches) },
@@ -138,7 +138,7 @@ class AdminLoansViewModel(
 }
 
 @Composable
-fun AdminLoansScreen(vm: AdminLoansViewModel = viewModel()) {
+fun AdminLoansScreen(user: UserProfile, vm: AdminLoansViewModel = viewModel()) {
     val state by vm.state.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     var toReturn by remember { mutableStateOf<Loan?>(null) }
@@ -150,64 +150,70 @@ fun AdminLoansScreen(vm: AdminLoansViewModel = viewModel()) {
         }
     }
 
-    Scaffold(contentWindowInsets = WindowInsets(0), snackbarHost = { SnackbarHost(snackbar) }) { padding ->
-        Column(
+    Scaffold(
+        containerColor = Color.Transparent,
+        contentWindowInsets = WindowInsets(0),
+        snackbarHost = { SnackbarHost(snackbar) },
+    ) { padding ->
+        LazyColumn(
             Modifier
                 .fillMaxSize()
                 .padding(padding),
+            contentPadding = PaddingValues(bottom = 32.dp),
         ) {
-            Column(Modifier.statusBarsPadding().padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 12.dp)) {
-                Text(
-                    "Circulation desk",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+            item { TopMark(user.name) }
+            item {
+                Spacer(Modifier.height(28.dp))
+                PageTitle("Circulation desk", "Loans")
+                Spacer(Modifier.height(24.dp))
+                SearchBox(
+                    value = state.query,
+                    onValueChange = vm::setQuery,
+                    placeholder = "Search member or book",
+                    modifier = Modifier.padding(horizontal = 24.dp),
                 )
-                Text("Loans", style = MaterialTheme.typography.headlineMedium)
-                Spacer(Modifier.height(16.dp))
-                SearchField(state.query, vm::setQuery, placeholder = "Search member or book")
-            }
-            LazyRow(
-                contentPadding = PaddingValues(horizontal = 20.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                items(LoanFilter.entries) { filter ->
-                    FilterChip(
-                        selected = state.filter == filter,
-                        onClick = { vm.setFilter(filter) },
-                        label = { Text("${filter.label} (${state.counts[filter] ?: 0})") },
-                        modifier = Modifier.testTag("filter_${filter.name}"),
-                    )
-                }
-            }
-
-            when {
-                state.loading -> LoadingBox()
-                state.error != null -> ErrorState(state.error!!)
-                state.loans.isEmpty() -> EmptyState(
-                    icon = Icons.Outlined.Inbox,
-                    title = when (state.filter) {
-                        LoanFilter.Overdue -> "Nothing overdue"
-                        LoanFilter.Active -> "No books on loan"
-                        else -> "No loans yet"
-                    },
-                    message = if (state.query.isNotBlank()) {
-                        "No loans match \"${state.query}\"."
-                    } else {
-                        "Loans appear here as soon as members borrow books."
-                    },
-                )
-                else -> LazyColumn(
-                    contentPadding = PaddingValues(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                Spacer(Modifier.height(14.dp))
+                LazyRow(
+                    contentPadding = PaddingValues(horizontal = 24.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    items(state.loans, key = { it.id }) { loan ->
-                        LoanCard(
-                            loan = loan,
-                            showMember = true,
-                            returning = vm.returningId == loan.id,
-                            onReturn = { toReturn = loan },
+                    items(LoanFilter.entries) { filter ->
+                        FilterTag(
+                            "${filter.label} · ${state.counts[filter] ?: 0}",
+                            selected = state.filter == filter,
+                            onClick = { vm.setFilter(filter) },
+                            modifier = Modifier.testTag("filter_${filter.name}"),
                         )
                     }
+                }
+                Spacer(Modifier.height(18.dp))
+            }
+            when {
+                state.loading -> item { LoadingBox(Modifier.height(240.dp)) }
+                state.error != null -> item { ErrorState(state.error!!) }
+                state.loans.isEmpty() -> item {
+                    EmptyState(
+                        icon = Icons.Outlined.Inbox,
+                        title = when (state.filter) {
+                            LoanFilter.Overdue -> "Nothing overdue"
+                            LoanFilter.Active -> "Nothing on loan"
+                            else -> "No loans yet"
+                        },
+                        message = if (state.query.isNotBlank()) {
+                            "No loans match \"${state.query}\"."
+                        } else {
+                            "Loans show up here as soon as members borrow books."
+                        },
+                    )
+                }
+                else -> items(state.loans, key = { it.id }) { loan ->
+                    LoanCard(
+                        loan = loan,
+                        showMember = true,
+                        returning = vm.returningId == loan.id,
+                        onReturn = { toReturn = loan },
+                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 7.dp),
+                    )
                 }
             }
         }
@@ -216,13 +222,11 @@ fun AdminLoansScreen(vm: AdminLoansViewModel = viewModel()) {
     toReturn?.let { loan ->
         val late = loan.dueState() as? DueState.Overdue
         ConfirmDialog(
-            title = "Check in this book?",
+            title = "Check this book in?",
             message = buildString {
-                append("Confirm that ${loan.userName} has returned \"${loan.bookTitle}\".")
+                append("Confirm ${loan.userName} has brought back \"${loan.bookTitle}\".")
                 if (late != null) {
-                    append(
-                        " It's ${pluralize(late.daysLate, "day")} late: collect a fee of ${formatRupiah(late.fee)}.",
-                    )
+                    append(" It's ${pluralize(late.daysLate, "day")} late, so collect ${formatRupiah(late.fee)}.")
                 }
             },
             confirmLabel = "Mark returned",

@@ -12,8 +12,8 @@ android {
         applicationId = "dev.ijlal.stacks"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 2
+        versionName = "1.1.0"
     }
 
     buildTypes {
@@ -24,7 +24,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
-            // Signed with the debug key so the release APK can be installed for review.
+            // signed with the debug key so the release apk can be installed directly
             signingConfig = signingConfigs.getByName("debug")
         }
     }

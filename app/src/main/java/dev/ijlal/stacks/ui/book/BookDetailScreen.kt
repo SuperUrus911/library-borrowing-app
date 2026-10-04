@@ -11,34 +11,23 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.outlined.Bookmarks
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material.icons.outlined.EventAvailable
-import androidx.compose.material.icons.outlined.Payments
 import androidx.compose.material.icons.outlined.SearchOff
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -48,15 +37,22 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil3.compose.AsyncImage
 import dev.ijlal.stacks.data.AppContainer
 import dev.ijlal.stacks.data.BookRepository
 import dev.ijlal.stacks.data.LibraryPolicy
@@ -65,16 +61,23 @@ import dev.ijlal.stacks.data.model.Book
 import dev.ijlal.stacks.data.model.Loan
 import dev.ijlal.stacks.data.model.UserProfile
 import dev.ijlal.stacks.data.userMessage
-import dev.ijlal.stacks.ui.catalog.AvailabilityPill
+import dev.ijlal.stacks.ui.catalog.AvailabilityTag
 import dev.ijlal.stacks.ui.components.BookCover
 import dev.ijlal.stacks.ui.components.ConfirmDialog
-import dev.ijlal.stacks.ui.components.DueStatePill
+import dev.ijlal.stacks.ui.components.DueTag
 import dev.ijlal.stacks.ui.components.EmptyState
 import dev.ijlal.stacks.ui.components.ErrorState
+import dev.ijlal.stacks.ui.components.Eyebrow
+import dev.ijlal.stacks.ui.components.LeaderRow
 import dev.ijlal.stacks.ui.components.LoadingBox
+import dev.ijlal.stacks.ui.components.OrnamentDivider
+import dev.ijlal.stacks.ui.components.PrimaryButton
+import dev.ijlal.stacks.ui.components.ShelfMeter
 import dev.ijlal.stacks.ui.components.formatRupiah
 import dev.ijlal.stacks.ui.components.formatted
 import dev.ijlal.stacks.ui.components.formattedDate
+import dev.ijlal.stacks.ui.components.panel
+import dev.ijlal.stacks.ui.theme.Midnight
 import java.time.LocalDate
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -100,7 +103,7 @@ class BookDetailViewModel(
         .catch { emit(BookDetailState.Error(it.userMessage())) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), BookDetailState.Loading)
 
-    /** Only collected on the librarian's view. */
+    // only used on the librarian view
     val activeLoans: StateFlow<List<Loan>> = loans.observeActiveLoansForBook(bookId)
         .catch { emit(emptyList()) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
@@ -114,7 +117,7 @@ class BookDetailViewModel(
 
     fun borrow(member: UserProfile) = launchAction {
         val dueAt = loans.borrow(bookId, member)
-        message = "Enjoy your book! Please return it by ${dueAt.formattedDate()}."
+        message = "It's yours until ${dueAt.formattedDate()}. Enjoy."
     }
 
     fun delete() = launchAction {
@@ -136,7 +139,6 @@ class BookDetailViewModel(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BookDetailScreen(
     bookId: String,
@@ -161,55 +163,42 @@ fun BookDetailScreen(
         if (vm.deleted) onBack()
     }
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbar) },
-        topBar = {
-            TopAppBar(
-                title = {},
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    if (user.isAdmin && book != null) {
-                        IconButton(onClick = { onEdit(book.id) }, modifier = Modifier.testTag("editBook")) {
-                            Icon(Icons.Outlined.Edit, contentDescription = "Edit book")
-                        }
-                        IconButton(onClick = { confirmDelete = true }, modifier = Modifier.testTag("deleteBook")) {
-                            Icon(Icons.Outlined.DeleteOutline, contentDescription = "Delete book")
-                        }
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                ),
+    Box(Modifier.fillMaxSize()) {
+        when (val current = state) {
+            BookDetailState.Loading -> LoadingBox()
+            BookDetailState.NotFound -> EmptyState(
+                icon = Icons.Outlined.SearchOff,
+                title = "Book not found",
+                message = "It may have been taken out of the catalog.",
+                modifier = Modifier.align(Alignment.Center),
             )
-        },
-        bottomBar = {
+            is BookDetailState.Error -> ErrorState(current.message, Modifier.align(Alignment.Center))
+            is BookDetailState.Loaded -> BookDetailContent(
+                book = current.book,
+                user = user,
+                activeLoans = if (user.isAdmin) vm.activeLoans.collectAsStateWithLifecycle().value else emptyList(),
+            )
+        }
+
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .statusBarsPadding()
+                .padding(horizontal = 12.dp, vertical = 6.dp),
+        ) {
+            RoundIcon(Icons.AutoMirrored.Outlined.ArrowBack, "Back", onBack)
+            Spacer(Modifier.weight(1f))
+            if (user.isAdmin && book != null) {
+                RoundIcon(Icons.Outlined.Edit, "Edit book", { onEdit(book.id) }, Modifier.testTag("editBook"))
+                Spacer(Modifier.width(8.dp))
+                RoundIcon(Icons.Outlined.DeleteOutline, "Delete book", { confirmDelete = true }, Modifier.testTag("deleteBook"))
+            }
+        }
+
+        Column(Modifier.align(Alignment.BottomCenter)) {
+            SnackbarHost(snackbar)
             if (!user.isAdmin && book != null) {
                 BorrowBar(book = book, user = user, busy = vm.busy, onBorrow = { confirmBorrow = true })
-            }
-        },
-    ) { padding ->
-        Box(
-            Modifier
-                .fillMaxSize()
-                .padding(padding),
-        ) {
-            when (val current = state) {
-                BookDetailState.Loading -> LoadingBox()
-                BookDetailState.NotFound -> EmptyState(
-                    icon = Icons.Outlined.SearchOff,
-                    title = "Book not found",
-                    message = "This book may have been removed from the catalog.",
-                )
-                is BookDetailState.Error -> ErrorState(current.message)
-                is BookDetailState.Loaded -> BookDetailContent(
-                    book = current.book,
-                    user = user,
-                    activeLoans = if (user.isAdmin) vm.activeLoans.collectAsStateWithLifecycle().value else emptyList(),
-                )
             }
         }
     }
@@ -217,8 +206,8 @@ fun BookDetailScreen(
     if (confirmBorrow && book != null) {
         ConfirmDialog(
             title = "Borrow this book?",
-            message = "\"${book.title}\" will be yours for ${LibraryPolicy.LOAN_PERIOD_DAYS} days. " +
-                "Please return it by ${LocalDate.now().plusDays(LibraryPolicy.LOAN_PERIOD_DAYS).formatted()}.",
+            message = "\"${book.title}\" is yours for ${LibraryPolicy.LOAN_PERIOD_DAYS} days. " +
+                "Bring it back by ${LocalDate.now().plusDays(LibraryPolicy.LOAN_PERIOD_DAYS).formatted()}.",
             confirmLabel = "Borrow",
             onConfirm = {
                 confirmBorrow = false
@@ -231,10 +220,10 @@ fun BookDetailScreen(
         ConfirmDialog(
             title = "Delete this book?",
             message = if (book.borrowedCopies > 0) {
-                "${book.borrowedCopies} of ${book.totalCopies} copies are still on loan. " +
-                    "They need to be returned before this book can be deleted."
+                "${book.borrowedCopies} of ${book.totalCopies} copies are still out. " +
+                    "They have to come back before the book can be deleted."
             } else {
-                "\"${book.title}\" will be removed from the catalog. Past loan records are kept."
+                "\"${book.title}\" will be removed from the catalog. Past loans stay on record."
             },
             confirmLabel = "Delete",
             destructive = true,
@@ -248,21 +237,58 @@ fun BookDetailScreen(
 }
 
 @Composable
+private fun RoundIcon(icon: ImageVector, description: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    IconButton(
+        onClick = onClick,
+        colors = IconButtonDefaults.iconButtonColors(
+            containerColor = Midnight.Void.copy(alpha = 0.55f),
+            contentColor = Midnight.Cream,
+        ),
+        modifier = modifier,
+    ) {
+        Icon(icon, contentDescription = description)
+    }
+}
+
+@Composable
 private fun BookDetailContent(book: Book, user: UserProfile, activeLoans: List<Loan>) {
-    val colors = MaterialTheme.colorScheme
     Column(
         Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState()),
     ) {
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .background(Brush.verticalGradient(listOf(colors.surfaceContainerHigh, colors.background)))
-                .padding(top = 8.dp, bottom = 24.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            BookCover(book.title, book.author, book.coverUrl, width = 150.dp, elevation = 12.dp)
+        Box(Modifier.fillMaxWidth()) {
+            // blurred, desaturated cover as the background
+            if (book.coverUrl != null) {
+                AsyncImage(
+                    model = book.coverUrl,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    colorFilter = ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(0.15f) }),
+                    alpha = 0.5f,
+                    modifier = Modifier
+                        .matchParentSize()
+                        .blur(40.dp),
+                )
+            }
+            Box(
+                Modifier
+                    .matchParentSize()
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(Midnight.IceDeep.copy(alpha = 0.45f), Midnight.Void.copy(alpha = 0.55f), Midnight.Void),
+                        ),
+                    ),
+            )
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .statusBarsPadding()
+                    .padding(top = 72.dp, bottom = 12.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                BookCover(book.title, book.author, book.coverUrl, width = 172.dp, elevation = 30.dp)
+            }
         }
 
         Column(
@@ -271,129 +297,78 @@ private fun BookDetailContent(book: Book, user: UserProfile, activeLoans: List<L
                 .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text(book.title, style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center)
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(24.dp))
+            Eyebrow(
+                listOfNotNull(book.category.ifBlank { null }, book.publishedYear.takeIf { it > 0 }?.toString())
+                    .joinToString(" · "),
+                color = Midnight.Ice,
+            )
+            Spacer(Modifier.height(10.dp))
+            Text(book.title, style = MaterialTheme.typography.displaySmall, color = Midnight.Cream, textAlign = TextAlign.Center)
+            Spacer(Modifier.height(6.dp))
             Text(
-                "by ${book.author}",
-                style = MaterialTheme.typography.bodyLarge,
-                color = colors.onSurfaceVariant,
+                book.author,
+                style = MaterialTheme.typography.headlineSmall.copy(fontStyle = FontStyle.Italic),
+                color = Midnight.CreamMuted,
                 textAlign = TextAlign.Center,
             )
-            Spacer(Modifier.height(12.dp))
-            AvailabilityPill(book, borrowedByMe = book.id in user.activeBookIds)
+            Spacer(Modifier.height(24.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                ShelfMeter(book.availableCopies, book.totalCopies)
+                Spacer(Modifier.width(14.dp))
+                AvailabilityTag(book, borrowedByMe = book.id in user.activeBookIds)
+            }
         }
 
-        Spacer(Modifier.height(20.dp))
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            InfoTile("Category", book.category.ifBlank { "—" }, Modifier.weight(1f))
-            InfoTile("Published", book.publishedYear.takeIf { it > 0 }?.toString() ?: "—", Modifier.weight(1f))
-            InfoTile("On shelf", "${book.availableCopies} / ${book.totalCopies}", Modifier.weight(1f))
-        }
-        Spacer(Modifier.height(10.dp))
-        LinearProgressIndicator(
-            progress = { if (book.totalCopies == 0) 0f else book.availableCopies / book.totalCopies.toFloat() },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp),
-            color = colors.tertiary,
-            trackColor = colors.surfaceContainerHighest,
-        )
+        Column(Modifier.padding(horizontal = 24.dp)) {
+            Spacer(Modifier.height(32.dp))
+            OrnamentDivider()
+            if (book.description.isNotBlank()) {
+                Spacer(Modifier.height(28.dp))
+                Eyebrow("About the book")
+                Spacer(Modifier.height(10.dp))
+                Text(book.description, style = MaterialTheme.typography.bodyLarge, color = Midnight.Cream.copy(alpha = 0.9f))
+            }
+            if (book.isbn.isNotBlank()) {
+                Spacer(Modifier.height(14.dp))
+                Eyebrow("ISBN ${book.isbn}", color = Midnight.CreamFaint)
+            }
+            Spacer(Modifier.height(32.dp))
 
-        if (book.description.isNotBlank()) {
-            SectionTitle("About this book")
-            Text(
-                book.description,
-                style = MaterialTheme.typography.bodyLarge,
-                modifier = Modifier.padding(horizontal = 24.dp),
-            )
-        }
-        if (book.isbn.isNotBlank()) {
-            Text(
-                "ISBN ${book.isbn}",
-                style = MaterialTheme.typography.labelMedium,
-                color = colors.outline,
-                modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
-            )
-        }
-
-        if (user.isAdmin) {
-            SectionTitle("On loan (${activeLoans.size})")
-            if (activeLoans.isEmpty()) {
-                Text(
-                    "Every copy is on the shelf.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = colors.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 24.dp),
-                )
-            } else {
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = colors.surfaceContainerLow),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp),
-                ) {
-                    activeLoans.forEachIndexed { index, loan ->
-                        if (index > 0) HorizontalDivider(color = colors.outlineVariant)
-                        BorrowerRow(loan)
+            if (user.isAdmin) {
+                Eyebrow("On loan · ${activeLoans.size}")
+                Spacer(Modifier.height(12.dp))
+                if (activeLoans.isEmpty()) {
+                    Text(
+                        "Every copy is on the shelf.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Midnight.CreamMuted,
+                    )
+                } else {
+                    Column(Modifier.panel()) {
+                        activeLoans.forEachIndexed { index, loan ->
+                            if (index > 0) HorizontalDivider(color = Midnight.Hairline)
+                            BorrowerRow(loan)
+                        }
                     }
                 }
-            }
-        } else {
-            SectionTitle("Borrowing rules")
-            Card(
-                colors = CardDefaults.cardColors(containerColor = colors.surfaceContainerLow),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp),
-            ) {
-                RuleRow(Icons.Outlined.EventAvailable, "Loan period", "${LibraryPolicy.LOAN_PERIOD_DAYS} days")
-                RuleRow(Icons.Outlined.Bookmarks, "Books at a time", "Up to ${LibraryPolicy.MAX_ACTIVE_LOANS}")
-                RuleRow(Icons.Outlined.Payments, "Late fee", "${formatRupiah(LibraryPolicy.LATE_FEE_PER_DAY)} / day")
+                Spacer(Modifier.height(40.dp))
+            } else {
+                Eyebrow("Lending terms")
+                Spacer(Modifier.height(8.dp))
+                Column(
+                    Modifier
+                        .panel()
+                        .padding(horizontal = 18.dp, vertical = 6.dp),
+                ) {
+                    LeaderRow("Loan period", "${LibraryPolicy.LOAN_PERIOD_DAYS} days")
+                    LeaderRow("At a time", "Up to ${LibraryPolicy.MAX_ACTIVE_LOANS} books")
+                    LeaderRow("Late fee", "${formatRupiah(LibraryPolicy.LATE_FEE_PER_DAY)} / day")
+                }
+                // space for the borrow bar
+                Spacer(Modifier.height(140.dp))
             }
         }
-        Spacer(Modifier.height(32.dp))
-    }
-}
-
-@Composable
-private fun SectionTitle(text: String) {
-    Text(
-        text,
-        style = MaterialTheme.typography.titleMedium,
-        modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 8.dp),
-    )
-}
-
-@Composable
-private fun InfoTile(label: String, value: String, modifier: Modifier = Modifier) {
-    Surface(
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-        shape = MaterialTheme.shapes.medium,
-        modifier = modifier,
-    ) {
-        Column(Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
-            Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(value, style = MaterialTheme.typography.titleSmall, maxLines = 1)
-        }
-    }
-}
-
-@Composable
-private fun RuleRow(icon: ImageVector, label: String, value: String) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(20.dp))
-        Text(label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 12.dp).weight(1f))
-        Text(value, style = MaterialTheme.typography.titleSmall)
     }
 }
 
@@ -402,59 +377,58 @@ private fun BorrowerRow(loan: Loan) {
     Row(
         Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(horizontal = 18.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {
-            Text(loan.userName, style = MaterialTheme.typography.titleSmall)
-            Text(
-                loan.userEmail,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            Text(loan.userName, style = MaterialTheme.typography.titleMedium, color = Midnight.Cream)
+            Text(loan.userEmail, style = MaterialTheme.typography.bodySmall, color = Midnight.CreamMuted)
         }
-        DueStatePill(loan)
+        DueTag(loan)
     }
 }
 
 @Composable
 private fun BorrowBar(book: Book, user: UserProfile, busy: Boolean, onBorrow: () -> Unit) {
-    val colors = MaterialTheme.colorScheme
-    val dueDate = LocalDate.now().plusDays(LibraryPolicy.LOAN_PERIOD_DAYS)
-    val ownLoanDue = book.id in user.activeBookIds
+    val holding = book.id in user.activeBookIds
     val (label, value, enabled) = when {
-        ownLoanDue -> Triple("You're reading this", "See My loans to return it", false)
-        !book.isAvailable -> Triple("Not available", "All copies are on loan", false)
+        holding -> Triple("You have it", "Return it from My loans", false)
+        !book.isAvailable -> Triple("Not available", "Every copy is out", false)
         user.activeBookIds.size >= LibraryPolicy.MAX_ACTIVE_LOANS ->
-            Triple("Loan limit reached", "Return a book to borrow this", false)
-        else -> Triple("Return by", dueDate.formatted(), true)
+            Triple("Limit reached", "Return a book first", false)
+        else -> Triple("Due back", LocalDate.now().plusDays(LibraryPolicy.LOAN_PERIOD_DAYS).formatted(), true)
     }
 
-    Surface(color = colors.surfaceContainer, tonalElevation = 3.dp, shadowElevation = 8.dp) {
+    Column(Modifier.fillMaxWidth()) {
+        // small fade so the content doesn't get cut off hard
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(32.dp)
+                .background(Brush.verticalGradient(listOf(Color.Transparent, Midnight.Void))),
+        )
         Row(
             Modifier
                 .fillMaxWidth()
+                .background(Midnight.Void)
                 .navigationBarsPadding()
-                .padding(horizontal = 20.dp, vertical = 14.dp),
+                .padding(start = 24.dp, end = 20.dp, top = 4.dp, bottom = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Column(Modifier.weight(1f)) {
-                Text(label, style = MaterialTheme.typography.labelMedium, color = colors.onSurfaceVariant)
-                Text(value, style = MaterialTheme.typography.titleMedium)
+                Eyebrow(label, color = Midnight.CreamFaint)
+                Spacer(Modifier.height(4.dp))
+                Text(value, style = MaterialTheme.typography.titleLarge, color = Midnight.Cream)
             }
-            Button(
+            PrimaryButton(
+                text = if (holding) "Borrowed" else "Borrow",
                 onClick = onBorrow,
-                enabled = enabled && !busy,
-                modifier = Modifier
-                    .height(48.dp)
-                    .testTag("borrow"),
-            ) {
-                if (busy) {
-                    CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
-                } else {
-                    Text(if (ownLoanDue) "Borrowed" else "Borrow")
-                }
-            }
+                enabled = enabled,
+                loading = busy,
+                arrow = enabled,
+                modifier = Modifier.testTag("borrow"),
+            )
         }
     }
 }

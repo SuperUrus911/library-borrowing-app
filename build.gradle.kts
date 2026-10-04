@@ -1,4 +1,4 @@
-// Top-level build file. AGP 9 compiles Kotlin itself; the kotlin-android entry only pins the KGP version.
+// AGP 9 has Kotlin built in, kotlin-android is only here to pin the Kotlin version
 plugins {
     alias(libs.plugins.android.application) apply false
     alias(libs.plugins.kotlin.android) apply false

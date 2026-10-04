@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
 
-/** Editable book fields, as entered in the admin form. */
+// fields from the add/edit book form
 data class BookInput(
     val title: String,
     val author: String,
@@ -48,7 +48,7 @@ class BookRepository(private val db: FirebaseFirestore) {
         return ref.id
     }
 
-    /** Copies already on loan stay on loan, so the shelf count moves by the change in total. */
+    // borrowed copies stay borrowed, so availableCopies moves by the same amount as totalCopies
     suspend fun updateBook(bookId: String, input: BookInput) {
         val ref = books.document(bookId)
         db.runTransaction { tx ->

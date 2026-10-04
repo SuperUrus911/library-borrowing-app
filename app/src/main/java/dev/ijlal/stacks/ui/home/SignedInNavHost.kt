@@ -18,6 +18,7 @@ import androidx.compose.material.icons.outlined.SwapHoriz
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -26,8 +27,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -41,6 +46,7 @@ import dev.ijlal.stacks.ui.book.BookFormScreen
 import dev.ijlal.stacks.ui.catalog.CatalogScreen
 import dev.ijlal.stacks.ui.loans.MyLoansScreen
 import dev.ijlal.stacks.ui.profile.ProfileScreen
+import dev.ijlal.stacks.ui.theme.Midnight
 
 private enum class HomeTab(
     val label: String,
@@ -110,15 +116,29 @@ private fun HomeScreen(
     val selected = tabs.firstOrNull { it.name == selectedName } ?: tabs.first()
 
     Scaffold(
+        containerColor = Color.Transparent,
         contentWindowInsets = WindowInsets(0),
         bottomBar = {
-            NavigationBar {
+            NavigationBar(
+                containerColor = Midnight.Void,
+                tonalElevation = 0.dp,
+                modifier = Modifier.drawBehind {
+                    drawLine(Midnight.Hairline, Offset(0f, 0f), Offset(size.width, 0f), strokeWidth = 1.dp.toPx())
+                },
+            ) {
                 tabs.forEach { tab ->
                     NavigationBarItem(
                         selected = tab == selected,
                         onClick = { selectedName = tab.name },
                         icon = { Icon(if (tab == selected) tab.selectedIcon else tab.icon, contentDescription = null) },
-                        label = { Text(tab.label) },
+                        label = { Text(tab.label.uppercase()) },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = Midnight.Cream,
+                            selectedTextColor = Midnight.Cream,
+                            indicatorColor = Midnight.Surface3,
+                            unselectedIconColor = Midnight.CreamFaint,
+                            unselectedTextColor = Midnight.CreamFaint,
+                        ),
                         modifier = Modifier.testTag("tab_${tab.name}"),
                     )
                 }
@@ -136,7 +156,7 @@ private fun HomeScreen(
                     onOpenLoans = { selectedName = HomeTab.Loans.name },
                 )
                 HomeTab.Catalog -> CatalogScreen(user = user, onOpenBook = onOpenBook, onAddBook = onAddBook)
-                HomeTab.Loans -> AdminLoansScreen()
+                HomeTab.Loans -> AdminLoansScreen(user = user)
                 HomeTab.MyLoans -> MyLoansScreen(
                     user = user,
                     onOpenBook = onOpenBook,

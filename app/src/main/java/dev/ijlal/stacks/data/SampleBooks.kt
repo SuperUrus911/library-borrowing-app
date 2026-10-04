@@ -1,147 +1,179 @@
 package dev.ijlal.stacks.data
 
-/** Starter catalog an admin can load into an empty library with one tap. */
+// Sample books so an admin can fill an empty library with one tap.
 object SampleBooks {
     val all = listOf(
+        // Fashion
         BookInput(
-            title = "Clean Code",
-            author = "Robert C. Martin",
-            isbn = "9780132350884",
-            category = "Programming",
-            publishedYear = 2008,
-            description = "A practical guide to writing code that is easy to read, change and test, " +
-                "illustrated with real refactoring case studies.",
-            totalCopies = 4,
-        ),
-        BookInput(
-            title = "The Pragmatic Programmer",
-            author = "Andrew Hunt & David Thomas",
-            isbn = "9780201616224",
-            category = "Programming",
-            publishedYear = 1999,
-            description = "Short, opinionated lessons on the habits and tools that separate " +
-                "craftspeople from coders, from DRY to tracer bullets.",
+            title = "Gods and Kings",
+            author = "Dana Thomas",
+            isbn = "9781594204944",
+            category = "Fashion",
+            publishedYear = 2015,
+            description = "How two outsiders, Lee McQueen and John Galliano, reshaped luxury fashion, " +
+                "and what the industry took from them in return.",
             totalCopies = 3,
         ),
         BookInput(
-            title = "Introduction to Algorithms",
-            author = "Thomas H. Cormen et al.",
-            isbn = "9780262033848",
-            category = "Programming",
-            publishedYear = 2009,
-            description = "The standard university reference on algorithms and data structures, " +
-                "with rigorous analysis and pseudocode for each technique.",
+            title = "Alexander McQueen: Savage Beauty",
+            author = "Andrew Bolton",
+            isbn = "9781588394125",
+            category = "Fashion",
+            publishedYear = 2011,
+            description = "The catalogue of the Met's McQueen retrospective: romantic, brutal and " +
+                "theatrical collections, photographed piece by piece.",
             totalCopies = 2,
         ),
+        BookInput(
+            title = "Rei Kawakubo / Comme des Garçons: Art of the In-Between",
+            author = "Andrew Bolton",
+            isbn = "9781588396204",
+            category = "Fashion",
+            publishedYear = 2017,
+            description = "Comme des Garçons read through its in-betweens: absence and presence, " +
+                "design and not-design, fashion and anti-fashion.",
+            totalCopies = 1,
+        ),
+        BookInput(
+            title = "The Fashion System",
+            author = "Roland Barthes",
+            isbn = "9780520071773",
+            category = "Fashion",
+            publishedYear = 1967,
+            description = "Barthes reads fashion magazines as a language, decoding how words turn " +
+                "clothes into meaning.",
+            totalCopies = 2,
+        ),
+        BookInput(
+            title = "Women in Clothes",
+            author = "Sheila Heti, Heidi Julavits & Leanne Shapton",
+            isbn = "9780399166563",
+            category = "Fashion",
+            publishedYear = 2014,
+            description = "Hundreds of women from around the world on what they wear, why they wear it " +
+                "and what it says about them.",
+            totalCopies = 3,
+        ),
+        // Music
+        BookInput(
+            title = "Just Kids",
+            author = "Patti Smith",
+            isbn = "9780060936228",
+            category = "Music",
+            publishedYear = 2010,
+            description = "Patti Smith's memoir of late-sixties New York and her bond with Robert " +
+                "Mapplethorpe, before either of them was famous.",
+            totalCopies = 4,
+        ),
+        BookInput(
+            title = "How Music Works",
+            author = "David Byrne",
+            isbn = "9781936365531",
+            category = "Music",
+            publishedYear = 2012,
+            description = "David Byrne on how rooms, technology and money shape the music we make " +
+                "and the way we hear it.",
+            totalCopies = 3,
+        ),
+        BookInput(
+            title = "Rip It Up and Start Again",
+            author = "Simon Reynolds",
+            isbn = "9780143036722",
+            category = "Music",
+            publishedYear = 2005,
+            description = "The restless, experimental years after punk, from Joy Division and " +
+                "Talking Heads to the birth of synth-pop.",
+            totalCopies = 2,
+        ),
+        BookInput(
+            title = "Chronicles: Volume One",
+            author = "Bob Dylan",
+            isbn = "9780743244589",
+            category = "Music",
+            publishedYear = 2004,
+            description = "Dylan's own account of arriving in Greenwich Village and the records that " +
+                "followed, told out of order.",
+            totalCopies = 2,
+        ),
+        BookInput(
+            title = "Lords of Chaos",
+            author = "Michael Moynihan & Didrik Søderlind",
+            isbn = "9780922915941",
+            category = "Music",
+            publishedYear = 1998,
+            description = "A history of the Norwegian black metal underground and the violence that " +
+                "grew around it.",
+            totalCopies = 1,
+        ),
+        BookInput(
+            title = "Life",
+            author = "Keith Richards",
+            isbn = "9780316034418",
+            category = "Music",
+            publishedYear = 2010,
+            description = "Keith Richards on the blues, the Rolling Stones and five decades of excess, " +
+                "in his own unfiltered voice.",
+            totalCopies = 2,
+        ),
+        // Art
+        BookInput(
+            title = "Ways of Seeing",
+            author = "John Berger",
+            isbn = "9780140135152",
+            category = "Art",
+            publishedYear = 1972,
+            description = "A short, radical book on how images, from oil paintings to adverts, teach " +
+                "us how to look.",
+            totalCopies = 4,
+        ),
+        BookInput(
+            title = "The Story of Art",
+            author = "E. H. Gombrich",
+            isbn = "9780714832470",
+            category = "Art",
+            publishedYear = 1950,
+            description = "The classic one-volume history of art, from cave paintings to the modern era.",
+            totalCopies = 2,
+        ),
+        BookInput(
+            title = "Interaction of Color",
+            author = "Josef Albers",
+            isbn = "9780300179354",
+            category = "Art",
+            publishedYear = 1963,
+            description = "Albers' hands-on course in how colours change one another, and why our " +
+                "eyes can't be trusted.",
+            totalCopies = 2,
+        ),
+        BookInput(
+            title = "On Photography",
+            author = "Susan Sontag",
+            isbn = "9780312420093",
+            category = "Art",
+            publishedYear = 1977,
+            description = "Essays on how the camera changed the way we see the world, and ourselves.",
+            totalCopies = 3,
+        ),
+        BookInput(
+            title = "Steal Like an Artist",
+            author = "Austin Kleon",
+            isbn = "9780761169253",
+            category = "Art",
+            publishedYear = 2012,
+            description = "Ten short lessons on creativity, influence and getting your work out " +
+                "into the world.",
+            totalCopies = 3,
+        ),
+        // Design
         BookInput(
             title = "The Design of Everyday Things",
             author = "Don Norman",
             isbn = "9780465050659",
             category = "Design",
             publishedYear = 2013,
-            description = "Why some doors are impossible to open and what that teaches us " +
-                "about designing objects and interfaces people can actually use.",
-            totalCopies = 3,
-        ),
-        BookInput(
-            title = "Atomic Habits",
-            author = "James Clear",
-            isbn = "9780735211292",
-            category = "Self-Improvement",
-            publishedYear = 2018,
-            description = "A framework for building good habits and breaking bad ones through " +
-                "small, compounding changes to everyday behaviour.",
-            totalCopies = 5,
-        ),
-        BookInput(
-            title = "Thinking, Fast and Slow",
-            author = "Daniel Kahneman",
-            isbn = "9780374533557",
-            category = "Psychology",
-            publishedYear = 2011,
-            description = "A tour of the two systems that drive how we think, and the " +
-                "predictable biases that come from relying on intuition.",
+            description = "Why some doors are impossible to open, and what that teaches us about " +
+                "designing things people can actually use.",
             totalCopies = 2,
-        ),
-        BookInput(
-            title = "Sapiens: A Brief History of Humankind",
-            author = "Yuval Noah Harari",
-            isbn = "9780062316097",
-            category = "History",
-            publishedYear = 2015,
-            description = "How a single species came to dominate the planet, told through " +
-                "the cognitive, agricultural and scientific revolutions.",
-            totalCopies = 3,
-        ),
-        BookInput(
-            title = "Laskar Pelangi",
-            author = "Andrea Hirata",
-            isbn = "9789793062792",
-            category = "Fiction",
-            publishedYear = 2005,
-            description = "Ten children at a struggling village school on Belitung island " +
-                "and the teacher who refuses to give up on them.",
-            totalCopies = 4,
-        ),
-        BookInput(
-            title = "Bumi Manusia",
-            author = "Pramoedya Ananta Toer",
-            isbn = "",
-            category = "Fiction",
-            publishedYear = 1980,
-            description = "The first book of the Buru Quartet: a young Javanese man comes of age " +
-                "under Dutch colonial rule at the turn of the twentieth century.",
-            totalCopies = 2,
-        ),
-        BookInput(
-            title = "To Kill a Mockingbird",
-            author = "Harper Lee",
-            isbn = "9780061120084",
-            category = "Fiction",
-            publishedYear = 1960,
-            description = "A child's view of justice and prejudice in a small Alabama town " +
-                "when her father defends a Black man in court.",
-            totalCopies = 3,
-        ),
-        BookInput(
-            title = "1984",
-            author = "George Orwell",
-            isbn = "9780451524935",
-            category = "Fiction",
-            publishedYear = 1949,
-            description = "Winston Smith rewrites history for a regime that watches everything, " +
-                "until he starts to keep a diary of his own.",
-            totalCopies = 3,
-        ),
-        BookInput(
-            title = "The Little Prince",
-            author = "Antoine de Saint-Exupéry",
-            isbn = "9780156012195",
-            category = "Fiction",
-            publishedYear = 1943,
-            description = "A pilot stranded in the desert meets a small traveller from another " +
-                "planet, in a fable about love, loss and seeing clearly.",
-            totalCopies = 2,
-        ),
-        BookInput(
-            title = "The Hobbit",
-            author = "J.R.R. Tolkien",
-            isbn = "9780547928227",
-            category = "Fantasy & Sci-Fi",
-            publishedYear = 1937,
-            description = "Bilbo Baggins is swept from his comfortable hole into a quest " +
-                "for a dragon's treasure with thirteen dwarves and a wizard.",
-            totalCopies = 3,
-        ),
-        BookInput(
-            title = "Dune",
-            author = "Frank Herbert",
-            isbn = "9780441172719",
-            category = "Fantasy & Sci-Fi",
-            publishedYear = 1965,
-            description = "Politics, religion and ecology collide on the desert planet Arrakis, " +
-                "the only source of the most valuable substance in the universe.",
-            totalCopies = 1,
         ),
     )
 }

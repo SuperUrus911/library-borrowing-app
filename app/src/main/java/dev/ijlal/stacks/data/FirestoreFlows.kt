@@ -8,7 +8,7 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 
-/** Realtime snapshot listener as a cold Flow; the listener is removed when collection stops. */
+// addSnapshotListener as a Flow. The listener is removed when the collector stops.
 fun Query.observe(): Flow<QuerySnapshot> = callbackFlow {
     val registration = addSnapshotListener { snapshot, error ->
         if (error != null) {

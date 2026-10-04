@@ -3,6 +3,7 @@ package dev.ijlal.stacks.ui
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -20,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
@@ -28,6 +30,10 @@ import dev.ijlal.stacks.data.AppContainer
 import dev.ijlal.stacks.data.AuthRepository
 import dev.ijlal.stacks.data.Session
 import dev.ijlal.stacks.ui.auth.AuthNavHost
+import dev.ijlal.stacks.ui.components.Wordmark
+import dev.ijlal.stacks.ui.components.grain
+import dev.ijlal.stacks.ui.components.rememberGrainBrush
+import dev.ijlal.stacks.ui.theme.Midnight
 import dev.ijlal.stacks.ui.home.SignedInNavHost
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharingStarted
@@ -48,11 +54,13 @@ class SessionViewModel(
 fun StacksApp(sessionViewModel: SessionViewModel = viewModel()) {
     val session by sessionViewModel.session.collectAsStateWithLifecycle()
 
+    val grain = rememberGrainBrush()
     Surface(
-        // Exposes testTags as resource ids so UI Automator / adb scripts can find nodes.
+        // lets adb / UI Automator find composables by their testTag (used for the screenshots)
         modifier = Modifier
             .fillMaxSize()
-            .semantics { testTagsAsResourceId = true },
+            .semantics { testTagsAsResourceId = true }
+            .grain(grain),
         color = MaterialTheme.colorScheme.background,
     ) {
         when (val current = session) {
@@ -65,7 +73,7 @@ fun StacksApp(sessionViewModel: SessionViewModel = viewModel()) {
 
 @Composable
 private fun SessionLoading(onSignOut: () -> Unit) {
-    // If a profile never shows up (e.g. an account created outside the app), offer a way out.
+    // in case the profile doc never shows up (e.g. a user created straight in the console)
     var showEscape by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         delay(6_000)
@@ -76,10 +84,11 @@ private fun SessionLoading(onSignOut: () -> Unit) {
         verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        CircularProgressIndicator()
+        Wordmark(56.sp, glitch = true)
+        CircularProgressIndicator(color = Midnight.Ice, strokeWidth = 2.dp, modifier = Modifier.size(22.dp))
         if (showEscape) {
             Text("Still loading your profile…", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            TextButton(onClick = onSignOut) { Text("Sign out") }
+            TextButton(onClick = onSignOut) { Text("SIGN OUT", style = MaterialTheme.typography.labelMedium, color = Midnight.Ice) }
         }
     }
 }

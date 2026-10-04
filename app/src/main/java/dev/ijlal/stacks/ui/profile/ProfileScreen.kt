@@ -1,8 +1,7 @@
 package dev.ijlal.stacks.ui.profile
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -10,27 +9,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.Logout
-import androidx.compose.material.icons.automirrored.outlined.Rule
-import androidx.compose.material.icons.outlined.AdminPanelSettings
-import androidx.compose.material.icons.outlined.CalendarMonth
-import androidx.compose.material.icons.outlined.Email
-import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -39,9 +23,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -54,9 +39,20 @@ import dev.ijlal.stacks.data.LoanRepository
 import dev.ijlal.stacks.data.dueState
 import dev.ijlal.stacks.data.model.UserProfile
 import dev.ijlal.stacks.ui.components.ConfirmDialog
-import dev.ijlal.stacks.ui.components.Pill
+import dev.ijlal.stacks.ui.components.Eyebrow
+import dev.ijlal.stacks.ui.components.GhostButton
+import dev.ijlal.stacks.ui.components.LeaderRow
+import dev.ijlal.stacks.ui.components.Monogram
+import dev.ijlal.stacks.ui.components.OrnamentDivider
+import dev.ijlal.stacks.ui.components.StatusTag
+import dev.ijlal.stacks.ui.components.TagGlyph
+import dev.ijlal.stacks.ui.components.TagTone
+import dev.ijlal.stacks.ui.components.TopMark
 import dev.ijlal.stacks.ui.components.formatRupiah
 import dev.ijlal.stacks.ui.components.formattedDate
+import dev.ijlal.stacks.ui.components.panel
+import dev.ijlal.stacks.ui.theme.Midnight
+import dev.ijlal.stacks.ui.theme.StacksType
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
@@ -95,98 +91,99 @@ fun ProfileScreen(
 ) {
     val stats by vm.stats.collectAsStateWithLifecycle()
     var confirmSignOut by rememberSaveable { mutableStateOf(false) }
-    val colors = MaterialTheme.colorScheme
     val context = LocalContext.current
     val version = remember(context) {
         runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull()
     }
 
-    Scaffold(contentWindowInsets = WindowInsets(0)) { padding ->
+    Scaffold(containerColor = Color.Transparent, contentWindowInsets = WindowInsets(0)) { padding ->
         Column(
             Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .verticalScroll(rememberScrollState())
-                .statusBarsPadding()
-                .padding(20.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
+                .verticalScroll(rememberScrollState()),
         ) {
-            Spacer(Modifier.height(12.dp))
-            Surface(shape = CircleShape, color = colors.primary, contentColor = colors.onPrimary) {
-                Box(Modifier.size(96.dp), contentAlignment = Alignment.Center) {
-                    Text(initials(user.name), style = MaterialTheme.typography.headlineLarge)
-                }
-            }
-            Spacer(Modifier.height(16.dp))
-            Text(user.name, style = MaterialTheme.typography.headlineSmall)
-            Text(user.email, style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
-            Spacer(Modifier.height(10.dp))
-            if (user.isAdmin) {
-                Pill(
-                    "Librarian",
-                    container = colors.secondaryContainer,
-                    content = colors.onSecondaryContainer,
-                    icon = Icons.Outlined.AdminPanelSettings,
-                )
-            } else {
-                Pill("Member", container = colors.primaryContainer, content = colors.onPrimaryContainer)
-            }
-
-            if (!user.isAdmin) {
-                Spacer(Modifier.height(24.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    StatTile("${stats.total}", "Books borrowed", Modifier.weight(1f))
-                    StatTile("${stats.active}", "Reading now", Modifier.weight(1f))
-                    StatTile("${stats.lateReturns}", "Late", Modifier.weight(1f))
-                }
-            }
-
-            Spacer(Modifier.height(24.dp))
-            Card(
-                colors = CardDefaults.cardColors(containerColor = colors.surfaceContainerLow),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                InfoRow(Icons.Outlined.Email, "Email", user.email)
-                HorizontalDivider(color = colors.outlineVariant)
-                InfoRow(Icons.Outlined.CalendarMonth, "Member since", user.createdAt.formattedDate())
-                HorizontalDivider(color = colors.outlineVariant)
-                if (user.isAdmin) {
-                    InfoRow(Icons.Outlined.AdminPanelSettings, "Access", "Catalog & circulation")
-                } else {
-                    InfoRow(
-                        Icons.AutoMirrored.Outlined.Rule,
-                        "Borrowing limit",
-                        "${LibraryPolicy.MAX_ACTIVE_LOANS} books · ${LibraryPolicy.LOAN_PERIOD_DAYS} days",
-                    )
-                    HorizontalDivider(color = colors.outlineVariant)
-                    InfoRow(Icons.Outlined.Info, "Late fee", "${formatRupiah(LibraryPolicy.LATE_FEE_PER_DAY)} / day")
-                }
-            }
-
-            Spacer(Modifier.height(24.dp))
-            OutlinedButton(
-                onClick = { confirmSignOut = true },
-                modifier = Modifier
+            TopMark(name = null)
+            Column(
+                Modifier
                     .fillMaxWidth()
-                    .height(52.dp)
-                    .testTag("signOut"),
+                    .padding(horizontal = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Icon(Icons.AutoMirrored.Outlined.Logout, contentDescription = null, tint = colors.error)
-                Text("  Sign out", color = colors.error)
+                Spacer(Modifier.height(24.dp))
+                Monogram(user.name, 116.dp)
+                Spacer(Modifier.height(20.dp))
+                Text(user.name, style = MaterialTheme.typography.displaySmall, color = Midnight.Cream, textAlign = TextAlign.Center)
+                Spacer(Modifier.height(6.dp))
+                Eyebrow(user.email, color = Midnight.CreamFaint)
+                Spacer(Modifier.height(16.dp))
+                if (user.isAdmin) {
+                    StatusTag("Librarian", TagTone.Ice, glyph = TagGlyph.Diamond)
+                } else {
+                    StatusTag("Member", TagTone.Cream, glyph = TagGlyph.Dot)
+                }
             }
-            Spacer(Modifier.height(16.dp))
-            Text(
-                "Stacks ${version.orEmpty()} · Kotlin, Jetpack Compose & Firebase",
-                style = MaterialTheme.typography.labelSmall,
-                color = colors.outline,
-            )
+
+            Column(Modifier.padding(horizontal = 24.dp)) {
+                if (!user.isAdmin) {
+                    Spacer(Modifier.height(30.dp))
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .height(IntrinsicSize.Min)
+                            .panel(),
+                    ) {
+                        StatCell("${stats.total}", "Borrowed", Modifier.weight(1f))
+                        VerticalDivider(color = Midnight.Hairline)
+                        StatCell("${stats.active}", "Reading", Modifier.weight(1f))
+                        VerticalDivider(color = Midnight.Hairline)
+                        StatCell("${stats.lateReturns}", "Late", Modifier.weight(1f))
+                    }
+                }
+
+                Spacer(Modifier.height(28.dp))
+                OrnamentDivider()
+                Spacer(Modifier.height(20.dp))
+                Eyebrow("Library card")
+                Spacer(Modifier.height(8.dp))
+                Column(
+                    Modifier
+                        .panel()
+                        .padding(horizontal = 18.dp, vertical = 6.dp),
+                ) {
+                    LeaderRow("Card holder since", user.createdAt.formattedDate())
+                    if (user.isAdmin) {
+                        LeaderRow("Access", "Catalog and desk")
+                    } else {
+                        LeaderRow("Limit", "${LibraryPolicy.MAX_ACTIVE_LOANS} books · ${LibraryPolicy.LOAN_PERIOD_DAYS} days")
+                        LeaderRow("Late fee", "${formatRupiah(LibraryPolicy.LATE_FEE_PER_DAY)} / day")
+                    }
+                }
+
+                Spacer(Modifier.height(28.dp))
+                GhostButton(
+                    "Sign out",
+                    onClick = { confirmSignOut = true },
+                    color = Midnight.Frost,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("signOut"),
+                )
+                Spacer(Modifier.height(20.dp))
+                Eyebrow(
+                    "Stacks ${version.orEmpty()} · Kotlin · Compose · Firebase",
+                    color = Midnight.CreamFaint,
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                )
+                Spacer(Modifier.height(28.dp))
+            }
         }
     }
 
     if (confirmSignOut) {
         ConfirmDialog(
             title = "Sign out?",
-            message = "You'll need your email and password to sign back in.",
+            message = "You'll need your email and password to get back in.",
             confirmLabel = "Sign out",
             destructive = true,
             onConfirm = {
@@ -198,29 +195,11 @@ fun ProfileScreen(
     }
 }
 
-private fun initials(name: String): String =
-    name.split(' ').filter { it.isNotBlank() }.take(2).joinToString("") { it.first().uppercase() }.ifEmpty { "?" }
-
 @Composable
-private fun StatTile(value: String, label: String, modifier: Modifier = Modifier) {
-    Surface(color = MaterialTheme.colorScheme.surfaceContainerLow, shape = MaterialTheme.shapes.medium, modifier = modifier) {
-        Column(Modifier.padding(vertical = 14.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(value, style = MaterialTheme.typography.headlineSmall)
-            Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-    }
-}
-
-@Composable
-private fun InfoRow(icon: ImageVector, label: String, value: String) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
-        Text(label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 12.dp).weight(1f))
-        Text(value, style = MaterialTheme.typography.titleSmall)
+private fun StatCell(value: String, label: String, modifier: Modifier = Modifier) {
+    Column(modifier.padding(vertical = 18.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(value, style = StacksType.Numeral.copy(fontSize = MaterialTheme.typography.displaySmall.fontSize), color = Midnight.Cream)
+        Spacer(Modifier.height(4.dp))
+        Eyebrow(label, color = Midnight.CreamFaint)
     }
 }

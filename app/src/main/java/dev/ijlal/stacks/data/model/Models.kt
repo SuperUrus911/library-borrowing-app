@@ -14,7 +14,7 @@ object LoanStatus {
     const val RETURNED = "RETURNED"
 }
 
-/** `users/{uid}` — profile plus the ids of books the user currently holds. */
+// users/{uid}: profile + ids of the books this user has right now
 data class UserProfile(
     @DocumentId val uid: String = "",
     val name: String = "",
@@ -30,7 +30,7 @@ data class UserProfile(
     val firstName: String get() = name.trim().substringBefore(' ').ifBlank { "there" }
 }
 
-/** `books/{bookId}` */
+// books/{bookId}
 data class Book(
     @DocumentId val id: String = "",
     val title: String = "",
@@ -53,10 +53,8 @@ data class Book(
     val isAvailable: Boolean get() = availableCopies > 0
 }
 
-/**
- * `loans/{loanId}` — one borrowing of one book by one member.
- * Book and member details are copied in so loan lists render without extra reads.
- */
+// loans/{loanId}: one book borrowed by one member. Book and member info is copied in
+// so the loan lists don't need extra reads.
 data class Loan(
     @DocumentId val id: String = "",
     val bookId: String = "",
@@ -78,7 +76,7 @@ data class Loan(
     val coverUrl: String? get() = coverUrlFor(bookIsbn)
 }
 
-/** Cover art from Open Library; `default=false` makes missing covers 404 so the UI can fall back. */
+// Open Library cover. default=false makes it 404 when there's no cover, so we can fall back.
 fun coverUrlFor(isbn: String): String? =
     isbn.filter { it.isLetterOrDigit() }
         .takeIf { it.isNotEmpty() }

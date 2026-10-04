@@ -1,9 +1,7 @@
 rules_version = '2';
 
-// Stacks security rules.
-// Members can only read their own profile and loans, and can only change stock
-// by exactly one copy as part of a borrow/return transaction. Librarians (role
-// "admin") manage the catalog and every loan.
+// Members can only see their own profile and loans, and can only change a book's
+// stock by 1 (borrow/return). Admins (role "admin") can manage everything.
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -27,13 +25,13 @@ service cloud.firestore {
     match /users/{uid} {
       allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
 
-      // Self-registration always creates a member with no loans.
+      // sign up always creates a member with no loans
       allow create: if signedIn()
         && request.auth.uid == uid
         && request.resource.data.role == 'member'
         && request.resource.data.activeBookIds.size() == 0;
 
-      // Members may only touch their loan list (borrow/return); admins may edit anything.
+      // members can only change their own activeBookIds
       allow update: if isAdmin()
         || (request.auth.uid == uid
             && changedOnly(['activeBookIds'])
@@ -46,7 +44,7 @@ service cloud.firestore {
       allow read: if signedIn();
       allow create, delete: if isAdmin();
 
-      // A member's borrow or return moves stock by one copy and touches nothing else.
+      // borrow/return: stock moves by one, nothing else changes
       allow update: if isAdmin()
         || (signedIn()
             && changedOnly(['availableCopies'])
@@ -58,14 +56,14 @@ service cloud.firestore {
     match /loans/{loanId} {
       allow read: if signedIn() && (resource.data.userId == request.auth.uid || isAdmin());
 
-      // A new loan must be the caller's own and must take a copy off the shelf in the same transaction.
+      // a new loan has to be your own and has to take a copy off the shelf in the same transaction
       allow create: if signedIn()
         && request.resource.data.userId == request.auth.uid
         && request.resource.data.status == 'BORROWED'
         && getAfter(bookPath(request.resource.data.bookId)).data.availableCopies
              == get(bookPath(request.resource.data.bookId)).data.availableCopies - 1;
 
-      // Members can only close their own loan.
+      // members can only close their own loan
       allow update: if isAdmin()
         || (signedIn()
             && resource.data.userId == request.auth.uid

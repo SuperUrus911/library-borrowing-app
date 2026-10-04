@@ -9,11 +9,11 @@ import com.google.firebase.auth.FirebaseAuthUserCollisionException
 import com.google.firebase.auth.FirebaseAuthWeakPasswordException
 import com.google.firebase.firestore.FirebaseFirestoreException
 
-/** A business-rule violation whose message is safe to show to the user as-is. */
+// Business rule errors. The message is meant to be shown to the user as is.
 class LibraryException(message: String) : Exception(message)
 
 fun Throwable.userMessage(): String {
-    // Exceptions thrown inside a Firestore transaction can arrive wrapped.
+    // errors thrown inside a transaction come back wrapped
     generateSequence(this) { it.cause }
         .firstOrNull { it is LibraryException }
         ?.let { return it.message.orEmpty() }
@@ -30,7 +30,7 @@ fun Throwable.userMessage(): String {
             FirebaseFirestoreException.Code.UNAVAILABLE -> "Can't reach the server. Please try again."
             else -> "Something went wrong. Please try again."
         }
-        // Remaining Firebase errors carry low-level detail (e.g. TLS failures) that means nothing to users.
+        // anything else from Firebase (TLS errors etc.) isn't useful to show to users
         is FirebaseException -> "Couldn't reach the server. Please check your connection and try again."
         else -> message ?: "Something went wrong. Please try again."
     }

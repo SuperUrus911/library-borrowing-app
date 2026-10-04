@@ -33,3 +33,11 @@ fun Timestamp?.relativeTime(now: Instant = Instant.now()): String {
 
 fun pluralize(count: Number, singular: String, plural: String = singular + "s"): String =
     "$count ${if (count.toLong() == 1L) singular else plural}"
+
+fun greeting(hour: Int = java.time.LocalTime.now().hour): String = when (hour) {
+    in 5..11 -> "Good morning"
+    in 12..16 -> "Good afternoon"
+    else -> "Good evening"
+}
+
+fun isEvening(hour: Int = java.time.LocalTime.now().hour): Boolean = hour >= 17 || hour < 5

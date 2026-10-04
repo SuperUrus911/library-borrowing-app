@@ -1,6 +1,8 @@
 package dev.ijlal.stacks.ui.catalog
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -10,26 +12,18 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.AutoStories
-import androidx.compose.material.icons.outlined.Bookmark
-import androidx.compose.material.icons.outlined.CheckCircle
-import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material.icons.outlined.SearchOff
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -42,8 +36,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -57,9 +56,20 @@ import dev.ijlal.stacks.data.userMessage
 import dev.ijlal.stacks.ui.components.BookCover
 import dev.ijlal.stacks.ui.components.EmptyState
 import dev.ijlal.stacks.ui.components.ErrorState
+import dev.ijlal.stacks.ui.components.Eyebrow
+import dev.ijlal.stacks.ui.components.FilterTag
+import dev.ijlal.stacks.ui.components.GhostButton
 import dev.ijlal.stacks.ui.components.LoadingBox
-import dev.ijlal.stacks.ui.components.Pill
-import dev.ijlal.stacks.ui.components.SearchField
+import dev.ijlal.stacks.ui.components.PageTitle
+import dev.ijlal.stacks.ui.components.PrimaryButton
+import dev.ijlal.stacks.ui.components.SearchBox
+import dev.ijlal.stacks.ui.components.StatusTag
+import dev.ijlal.stacks.ui.components.TagGlyph
+import dev.ijlal.stacks.ui.components.TagTone
+import dev.ijlal.stacks.ui.components.TopMark
+import dev.ijlal.stacks.ui.components.greeting
+import dev.ijlal.stacks.ui.components.isEvening
+import dev.ijlal.stacks.ui.theme.Midnight
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -75,11 +85,14 @@ data class CatalogUiState(
     val loading: Boolean = true,
     val error: String? = null,
     val books: List<Book> = emptyList(),
-    val totalBooks: Int = 0,
+    val all: List<Book> = emptyList(),
     val categories: List<String> = emptyList(),
     val query: String = "",
     val category: String? = null,
-)
+) {
+    val totalBooks: Int get() = all.size
+    val browsing: Boolean get() = query.isBlank() && category == null
+}
 
 class CatalogViewModel(
     private val repo: BookRepository = AppContainer.bookRepository,
@@ -116,7 +129,7 @@ class CatalogViewModel(
                                     book.category.contains(needle, ignoreCase = true)
                                 )
                     },
-                    totalBooks = all.size,
+                    all = all,
                     categories = all.map { it.category }.filter { it.isNotBlank() }.distinct().sorted(),
                     query = q,
                     category = c,
@@ -170,6 +183,7 @@ fun CatalogScreen(
     }
 
     Scaffold(
+        containerColor = Color.Transparent,
         contentWindowInsets = WindowInsets(0),
         snackbarHost = { SnackbarHost(snackbar) },
         floatingActionButton = {
@@ -177,95 +191,153 @@ fun CatalogScreen(
                 ExtendedFloatingActionButton(
                     onClick = onAddBook,
                     icon = { Icon(Icons.Outlined.Add, contentDescription = null) },
-                    text = { Text("Add book") },
+                    text = { Text("Add book", style = MaterialTheme.typography.labelLarge) },
+                    containerColor = Midnight.Cream,
+                    contentColor = Midnight.Void,
+                    shape = RoundedCornerShape(16.dp),
                     modifier = Modifier.testTag("addBook"),
                 )
             }
         },
     ) { padding ->
-        Column(
-            Modifier
-                .fillMaxSize()
-                .padding(padding),
-        ) {
-            Column(
-                Modifier
-                    .statusBarsPadding()
-                    .padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 12.dp),
-            ) {
-                Text(
-                    if (user.isAdmin) "Library collection" else "Hello, ${user.firstName}",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Text(
-                    if (user.isAdmin) "Catalog" else "Find your next read",
-                    style = MaterialTheme.typography.headlineMedium,
-                )
-                Spacer(Modifier.height(16.dp))
-                SearchField(
-                    value = state.query,
-                    onValueChange = vm::onQueryChange,
-                    placeholder = "Search title, author or ISBN",
-                )
+        when {
+            state.loading -> LoadingBox(Modifier.padding(padding))
+            state.error != null -> ErrorState(state.error!!, Modifier.padding(padding), onRetry = vm::retry)
+            state.totalBooks == 0 -> Column(Modifier.padding(padding)) {
+                TopMark(user.name)
+                Spacer(Modifier.height(28.dp))
+                PageTitle(if (user.isAdmin) "Library collection" else "${greeting()}, ${user.firstName}", "The shelves are bare.")
+                EmptyCatalog(isAdmin = user.isAdmin, seeding = vm.seeding, onAddSamples = vm::addSampleBooks, onAddBook = onAddBook)
             }
-            if (state.categories.isNotEmpty()) {
-                LazyRow(
-                    contentPadding = PaddingValues(horizontal = 20.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    item {
-                        FilterChip(
-                            selected = state.category == null,
-                            onClick = { vm.onCategorySelected(null) },
-                            label = { Text("All") },
-                        )
+            else -> LazyColumn(
+                Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .testTag("bookList"),
+                contentPadding = PaddingValues(bottom = 120.dp),
+            ) {
+                item { TopMark(user.name) }
+                item { CatalogHeader(user) }
+                if (state.browsing) {
+                    val featured = state.all
+                        .filter { it.isAvailable && it.id !in user.activeBookIds }
+                        .sortedByDescending { it.availableCopies }
+                        .take(8)
+                    if (featured.isNotEmpty()) {
+                        item { FeaturedShelf(featured, onOpenBook) }
                     }
-                    items(state.categories) { category ->
-                        FilterChip(
-                            selected = state.category == category,
-                            onClick = {
-                                vm.onCategorySelected(if (state.category == category) null else category)
-                            },
-                            label = { Text(category) },
+                }
+                item {
+                    Column(Modifier.padding(top = 28.dp)) {
+                        SearchBox(
+                            value = state.query,
+                            onValueChange = vm::onQueryChange,
+                            placeholder = "Search title, author, ISBN",
+                            modifier = Modifier.padding(horizontal = 24.dp),
+                        )
+                        Spacer(Modifier.height(14.dp))
+                        LazyRow(
+                            contentPadding = PaddingValues(horizontal = 24.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            item {
+                                FilterTag("All", selected = state.category == null, onClick = { vm.onCategorySelected(null) })
+                            }
+                            items(state.categories) { category ->
+                                FilterTag(
+                                    category,
+                                    selected = state.category == category,
+                                    onClick = { vm.onCategorySelected(if (state.category == category) null else category) },
+                                )
+                            }
+                        }
+                    }
+                }
+                item {
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(start = 24.dp, end = 24.dp, top = 30.dp, bottom = 6.dp),
+                    ) {
+                        Eyebrow(if (state.browsing) "All titles" else "Results")
+                        Spacer(Modifier.weight(1f))
+                        Eyebrow("${state.books.size} / ${state.totalBooks}", color = Midnight.CreamFaint)
+                    }
+                }
+                if (state.books.isEmpty()) {
+                    item {
+                        EmptyState(
+                            icon = Icons.Outlined.SearchOff,
+                            title = "Nothing on these shelves",
+                            message = "No title, author or ISBN matches your search.",
                         )
                     }
                 }
+                items(state.books, key = { it.id }) { book ->
+                    BookRow(
+                        book = book,
+                        borrowedByMe = book.id in user.activeBookIds,
+                        onClick = { onOpenBook(book.id) },
+                    )
+                }
             }
+        }
+    }
+}
 
-            when {
-                state.loading -> LoadingBox()
-                state.error != null -> ErrorState(state.error!!, onRetry = vm::retry)
-                state.totalBooks == 0 -> EmptyCatalog(
-                    isAdmin = user.isAdmin,
-                    seeding = vm.seeding,
-                    onAddSamples = vm::addSampleBooks,
-                    onAddBook = onAddBook,
-                )
-                state.books.isEmpty() -> EmptyState(
-                    icon = Icons.Outlined.SearchOff,
-                    title = "No matches",
-                    message = "Nothing in the catalog matches your search. Try a different title, author or category.",
-                )
-                else -> LazyColumn(
-                    contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 96.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.testTag("bookList"),
+@Composable
+private fun CatalogHeader(user: UserProfile) {
+    Column(Modifier.padding(start = 24.dp, end = 24.dp, top = 28.dp)) {
+        Eyebrow(if (user.isAdmin) "Library collection" else "${greeting()}, ${user.firstName}")
+        Spacer(Modifier.height(10.dp))
+        Text(
+            buildAnnotatedString {
+                if (user.isAdmin) {
+                    append("The ")
+                    withStyle(SpanStyle(fontStyle = FontStyle.Italic, color = Midnight.Ice)) { append("collection") }
+                    append(".")
+                } else {
+                    append("Find your ")
+                    withStyle(SpanStyle(fontStyle = FontStyle.Italic, color = Midnight.Ice)) { append("next") }
+                    append(" read.")
+                }
+            },
+            style = MaterialTheme.typography.displayMedium,
+            color = Midnight.Cream,
+        )
+    }
+}
+
+@Composable
+private fun FeaturedShelf(books: List<Book>, onOpenBook: (String) -> Unit) {
+    Column(Modifier.padding(top = 30.dp)) {
+        Row(Modifier.padding(horizontal = 24.dp)) {
+            Eyebrow(if (isEvening()) "On the shelf tonight" else "On the shelf today", color = Midnight.Ice)
+            Spacer(Modifier.weight(1f))
+            Eyebrow("Swipe →", color = Midnight.CreamFaint)
+        }
+        Spacer(Modifier.height(16.dp))
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = 24.dp),
+            horizontalArrangement = Arrangement.spacedBy(18.dp),
+        ) {
+            items(books, key = { it.id }) { book ->
+                Column(
+                    Modifier
+                        .width(148.dp)
+                        .clickable { onOpenBook(book.id) },
                 ) {
-                    item {
-                        Text(
-                            "${state.books.size} of ${state.totalBooks} titles",
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    items(state.books, key = { it.id }) { book ->
-                        BookRow(
-                            book = book,
-                            borrowedByMe = book.id in user.activeBookIds,
-                            onClick = { onOpenBook(book.id) },
-                        )
-                    }
+                    BookCover(book.title, book.author, book.coverUrl, width = 148.dp, elevation = 16.dp)
+                    Spacer(Modifier.height(14.dp))
+                    Text(
+                        book.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Midnight.Cream,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Eyebrow(book.author, color = Midnight.CreamFaint)
                 }
             }
         }
@@ -280,27 +352,25 @@ private fun EmptyCatalog(
     onAddBook: () -> Unit,
 ) {
     EmptyState(
-        icon = Icons.Outlined.AutoStories,
-        title = "The shelves are empty",
+        title = "No books yet",
         message = if (isAdmin) {
-            "Add your first book, or load a starter collection of 14 titles to try things out."
+            "Add your first book, or load a starter collection of fashion, music and art titles."
         } else {
-            "No books have been added yet. Check back soon!"
+            "The librarians haven't added any books yet. Check back soon."
         },
         action = if (isAdmin) {
             {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    Button(onClick = onAddSamples, enabled = !seeding, modifier = Modifier.testTag("addSamples")) {
-                        if (seeding) {
-                            CircularProgressIndicator(Modifier.height(18.dp), strokeWidth = 2.dp)
-                        } else {
-                            Text("Load sample books")
-                        }
-                    }
-                    OutlinedButton(onClick = onAddBook) { Text("Add a book") }
+                    PrimaryButton(
+                        "Load sample books",
+                        onClick = onAddSamples,
+                        loading = seeding,
+                        modifier = Modifier.testTag("addSamples"),
+                    )
+                    GhostButton("Add a book", onClick = onAddBook)
                 }
             }
         } else {
@@ -311,63 +381,56 @@ private fun EmptyCatalog(
 
 @Composable
 private fun BookRow(book: Book, borrowedByMe: Boolean, onClick: () -> Unit) {
-    Card(
-        onClick = onClick,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
-        modifier = Modifier
-            .fillMaxWidth()
-            .testTag("book_${book.title}"),
-    ) {
-        Row(Modifier.padding(12.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-            BookCover(book.title, book.author, book.coverUrl, width = 64.dp)
+    Column {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClick)
+                .padding(horizontal = 24.dp, vertical = 18.dp)
+                .testTag("book_${book.title}"),
+            horizontalArrangement = Arrangement.spacedBy(18.dp),
+        ) {
+            BookCover(book.title, book.author, book.coverUrl, width = 62.dp)
             Column(Modifier.weight(1f)) {
+                Eyebrow(
+                    listOfNotNull(book.category.ifBlank { null }, book.publishedYear.takeIf { it > 0 }?.toString())
+                        .joinToString(" · "),
+                    color = Midnight.CreamFaint,
+                )
+                Spacer(Modifier.height(6.dp))
                 Text(
                     book.title,
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleLarge,
+                    color = Midnight.Cream,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
                     book.author,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = Midnight.CreamMuted,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                Text(
-                    listOfNotNull(book.category.ifBlank { null }, book.publishedYear.takeIf { it > 0 }?.toString())
-                        .joinToString(" · "),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.outline,
-                )
-                Spacer(Modifier.height(10.dp))
-                AvailabilityPill(book, borrowedByMe)
+                Spacer(Modifier.height(12.dp))
+                AvailabilityTag(book, borrowedByMe)
             }
         }
+        HorizontalDivider(color = Midnight.Hairline, modifier = Modifier.padding(horizontal = 24.dp))
     }
 }
 
 @Composable
-fun AvailabilityPill(book: Book, borrowedByMe: Boolean = false) {
-    val colors = MaterialTheme.colorScheme
-    when {
-        borrowedByMe -> Pill(
-            "You're reading this",
-            container = colors.secondaryContainer,
-            content = colors.onSecondaryContainer,
-            icon = Icons.Outlined.Bookmark,
-        )
-        book.isAvailable -> Pill(
-            "${book.availableCopies} of ${book.totalCopies} available",
-            container = colors.tertiaryContainer,
-            content = colors.onTertiaryContainer,
-            icon = Icons.Outlined.CheckCircle,
-        )
-        else -> Pill(
-            "All ${book.totalCopies} on loan",
-            container = colors.errorContainer,
-            content = colors.onErrorContainer,
-            icon = Icons.Outlined.Inventory2,
-        )
+fun AvailabilityTag(book: Book, borrowedByMe: Boolean = false, modifier: Modifier = Modifier) {
+    Box(modifier) {
+        when {
+            borrowedByMe -> StatusTag("You're reading this", TagTone.Cream, glyph = TagGlyph.Diamond)
+            book.isAvailable -> StatusTag(
+                "${book.availableCopies} of ${book.totalCopies} on the shelf",
+                TagTone.Ice,
+                glyph = TagGlyph.Dot,
+            )
+            else -> StatusTag("All ${book.totalCopies} out", TagTone.Muted, glyph = TagGlyph.Ring)
+        }
     }
 }
